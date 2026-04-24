@@ -1,3 +1,4 @@
+require('dotenv').config(); // 👈 Llama a la magia del .env
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
@@ -6,13 +7,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔌 CONEXIÓN A TU COOLIFY
+// 🔌 CONEXIÓN A TU COOLIFY (Ahora lee del .env)
 const db = mysql.createConnection({
-  host: '158.220.115.89', // La IP de tu servidor
-  port: 3002,             // El puerto que mapeaste
-  user: 'root',           // Tu usuario jefe
-  password: '95iWhGYPrJn99czMuvLCEuQXWiBbDNmt5TEZaatd0Z3fneGpCT2wZmWn4KfPzw8N', // ⚠️ Pega aquí tu contraseña larga del ojito
-  database: 'hotelbears'  // El nombre de tu BD
+  host: process.env.DB_HOST, 
+  port: process.env.DB_PORT,             
+  user: process.env.DB_USER,           
+  password: process.env.DB_PASSWORD, 
+  database: process.env.DB_NAME  
 });
 
 db.connect((err) => {
@@ -25,7 +26,7 @@ db.connect((err) => {
 
 // 🚪 PUERTA 1: Prueba de conexión
 app.get('/api/estado', (req, res) => {
-  res.json({ mensaje: "¡El Mesero está vivo, mi king! 🚀" });
+  res.json({ mensaje: "¡El Mesero está vivo y seguro, mi king! 🚀" });
 });
 
 // 🚪 PUERTA 2: Obtener cuartos (Ejemplo)
