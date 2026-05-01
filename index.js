@@ -40,14 +40,12 @@ app.get('/api/habitaciones', (req, res) => {
 
 // 🚪 PUERTA 3: Recibir un nuevo registro de usuario
 app.post('/api/registro', (req, res) => {
-  // 1. Abrimos el paquete que nos manda Android
-  const { nombre, correo, pass, pregunta, respuesta } = req.body;
+  const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
 
-  // 2. Preparamos la orden para MySQL (⚠️ Asegúrate de que tu tabla en MySQL se llame PERSONAL o el nombre que uses)
-  const sql = 'INSERT INTO PERSONAL (nombre, correo, pass, pregunta, respuesta) VALUES (?, ?, ?, ?, ?)';
+  // Fíjate que aquí uso exactamente los nombres de las columnas de tu MySQL
+  const sql = 'INSERT INTO PERSONAL (NOMBRES, APELLIDOS, CORREO, CONTRASENA, PREGUNTA, RESPUESTA) VALUES (?, ?, ?, ?, ?, ?)';
   
-  // 3. Ejecutamos la orden
-  db.query(sql, [nombre, correo, pass, pregunta, respuesta], (err, results) => {
+  db.query(sql, [nombres, apellidos, correo, pass, pregunta, respuesta], (err, results) => {
     if (err) {
       console.error('Error al guardar: ', err);
       return res.status(500).json({ mensaje: 'Error guardando en la nube' });
