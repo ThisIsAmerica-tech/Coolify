@@ -7,6 +7,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🛡️ MIDDLEWARE DE SEGURIDAD (El Cadenero del Club)
+const verificarApiKey = (req, res, next) => {
+  // 1. Le pedimos que nos muestre su llave secreta (que viene oculta en las "cabeceras")
+  const apiKey = req.headers['x-api-key'];
+  
+  // 2. Definimos cuál es la llave oficial (¡Inventa una muy difícil luego!)
+  const miLlaveSecreta = 'HotelBears_SuperSecret_2026'; 
+
+  // 3. Verificamos si la llave es correcta
+  if (!apiKey || apiKey !== miLlaveSecreta) {
+    console.log('🚨 ¡Intento de hackeo bloqueado!');
+    return res.status(401).json({ mensaje: '¡Acceso denegado! No tienes el Pase VIP 🛑' });
+  }
+
+  // 4. Si la llave es correcta, le decimos "Adelante, pasa".
+  next(); 
+};
+
 // 🔌 CONEXIÓN A TU COOLIFY (Ahora lee del .env)
 const db = mysql.createConnection({
   host: process.env.DB_HOST, 
@@ -38,20 +56,17 @@ app.get('/api/habitaciones', (req, res) => {
 });
 
 
-// 🚪 PUERTA 3: Recibir un nuevo registro de usuario
-app.post('/api/registro', (req, res) => {
+// 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
+app.post('/api/registro', verificarApiKey, (req, res) => {
   const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
 
-  // 1. Armamos la orden COMPLETA para que MySQL no se queje de columnas vacías
   const sql = `INSERT INTO PERSONAL 
     (NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, SUELDO, ROL, HORARIO, ASISTENCIA, PREGUNTA, RESPUESTA, is_deleted) 
     VALUES (?, ?, ?, ?, ?, 0.0, 1, 1, 1, ?, ?, 0)`;
   
-  // 2. Fíjate que repito "correo" en el 3er lugar para que se guarde como USUARIO también
   db.query(sql, [nombres, apellidos, correo, pass, correo, pregunta, respuesta], (err, results) => {
     if (err) {
       console.error('Error al guardar en MySQL: ', err);
-      // Imprimimos el error exacto en los logs de Coolify para no adivinar más
       return res.status(500).json({ mensaje: 'Error guardando en la nube: ' + err.code });
     }
     res.json({ mensaje: "¡Usuario guardado en la nube con éxito! ☁️🐻" });
