@@ -42,13 +42,17 @@ app.get('/api/habitaciones', (req, res) => {
 app.post('/api/registro', (req, res) => {
   const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
 
-  // Fíjate que aquí uso exactamente los nombres de las columnas de tu MySQL
-  const sql = 'INSERT INTO PERSONAL (NOMBRES, APELLIDOS, CORREO, CONTRASENA, PREGUNTA, RESPUESTA) VALUES (?, ?, ?, ?, ?, ?)';
+  // 1. Armamos la orden COMPLETA para que MySQL no se queje de columnas vacías
+  const sql = `INSERT INTO PERSONAL 
+    (NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, SUELDO, ROL, HORARIO, ASISTENCIA, PREGUNTA, RESPUESTA, is_deleted) 
+    VALUES (?, ?, ?, ?, ?, 0.0, 1, 1, 1, ?, ?, 0)`;
   
-  db.query(sql, [nombres, apellidos, correo, pass, pregunta, respuesta], (err, results) => {
+  // 2. Fíjate que repito "correo" en el 3er lugar para que se guarde como USUARIO también
+  db.query(sql, [nombres, apellidos, correo, pass, correo, pregunta, respuesta], (err, results) => {
     if (err) {
-      console.error('Error al guardar: ', err);
-      return res.status(500).json({ mensaje: 'Error guardando en la nube' });
+      console.error('Error al guardar en MySQL: ', err);
+      // Imprimimos el error exacto en los logs de Coolify para no adivinar más
+      return res.status(500).json({ mensaje: 'Error guardando en la nube: ' + err.code });
     }
     res.json({ mensaje: "¡Usuario guardado en la nube con éxito! ☁️🐻" });
   });
