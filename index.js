@@ -73,8 +73,23 @@ app.post('/api/registro', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 4: Sincronización (Bajar los usuarios de MySQL al celular)
+app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
+  const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL FROM PERSONAL WHERE is_deleted = 0';
+  
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error al sincronizar: ', err);
+      return res.status(500).json({ mensaje: 'Error leyendo la nube' });
+    }
+    // Le devolvemos la lista completa al celular en formato JSON
+    res.json(results); 
+  });
+});
+
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API corriendo en el puerto ${PORT}`);
 });
+
