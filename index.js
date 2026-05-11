@@ -55,6 +55,30 @@ app.get('/api/habitaciones', (req, res) => {
   });
 });
 
+// 🚪 PUERTA 5: Actualizar estado y precio de una Habitación (Guardar y Disparar)
+app.post('/api/habitacion/actualizar', verificarApiKey, (req, res) => {
+  // Recibimos la caja de Android
+  const { numeroHabitacion, nuevoEstado, nuevoPrecio } = req.body;
+
+  // Actualizamos la tabla HABITACION. 
+  // OJO: Usamos un sub-query para buscar el ESTADOID basado en el nombre ('LIBRE', 'OCUPADO', etc.)
+  const sql = `
+    UPDATE HABITACION 
+    SET 
+        ESTADO = (SELECT ESTADOID FROM ESTADOHABITACION WHERE NOMBRE = ? LIMIT 1),
+        PRECIO = ?
+    WHERE HABITACION = ?
+  `;
+  
+  db.query(sql, [nuevoEstado, nuevoPrecio, numeroHabitacion], (err, results) => {
+    if (err) {
+      console.error('Error al actualizar habitación: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ mensaje: `Habitación ${numeroHabitacion} actualizada a ${nuevoEstado} ☁️✅` });
+  });
+});
+
 
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
