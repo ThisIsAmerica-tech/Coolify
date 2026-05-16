@@ -80,6 +80,26 @@ app.post('/api/habitacion/actualizar', verificarApiKey, (req, res) => {
 });
 
 
+// 🚪 PUERTA 6: Crear una nueva Habitación (Guardar y Disparar)
+app.post('/api/habitacion/nueva', verificarApiKey, (req, res) => {
+  const { numeroHabitacion, tipo, precio } = req.body;
+
+  // Por defecto la creamos con ESTADO 1 (Libre) y SUCURSAL 1
+  const sql = `INSERT INTO HABITACION (HABITACION, PRECIO, TIPO, ESTADO, SUCURSAL) VALUES (?, ?, ?, 1, 1)`;
+  
+  db.query(sql, [numeroHabitacion, precio, tipo], (err, results) => {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ mensaje: 'La habitación ya existe en la nube' });
+      }
+      console.error('Error al crear habitación: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ mensaje: `Habitación ${numeroHabitacion} creada en la nube ☁️🐻` });
+  });
+});
+
+
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
   const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
