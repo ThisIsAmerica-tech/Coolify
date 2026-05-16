@@ -118,6 +118,18 @@ app.get('/api/habitacion/todas', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 8: Eliminar una habitación
+app.delete('/api/habitacion/eliminar/:numero', verificarApiKey, (req, res) => {
+  const numeroHabitacion = req.params.numero;
+  
+  db.query('DELETE FROM HABITACION WHERE HABITACION = ?', [numeroHabitacion], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar habitación: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ mensaje: `Habitación ${numeroHabitacion} eliminada de la nube 🗑️☁️` });
+  });
+});
 
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
@@ -149,6 +161,8 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
     res.json(results); 
   });
 });
+
+
 
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
