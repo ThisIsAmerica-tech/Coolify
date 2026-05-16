@@ -99,6 +99,25 @@ app.post('/api/habitacion/nueva', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 7: Descargar todas las habitaciones (Tubo de Bajada)
+app.get('/api/habitacion/todas', verificarApiKey, (req, res) => {
+  // Juntamos la tabla de habitaciones con la de estados para mandar el nombre ('LIBRE', 'OCUPADO')
+  const sql = `
+    SELECT h.HABITACION as numero, h.PRECIO as precio, h.TIPO as tipo, e.NOMBRE as estado
+    FROM HABITACION h
+    JOIN ESTADOHABITACION e ON h.ESTADO = e.ESTADOID
+  `;
+  
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error al descargar habitaciones: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    // Mandamos el paquete
+    res.json({ habitaciones: results });
+  });
+});
+
 
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
