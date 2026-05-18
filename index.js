@@ -163,6 +163,42 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
 });
 
 
+// 🚪 PUERTA 9: Descargar todos los clientes (Tubo de Bajada para el Buscador)
+app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
+  const sql = `SELECT * FROM CLIENTE`;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error al descargar clientes: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ clientes: results });
+  });
+});
+
+// 🚪 PUERTA 10: Guardar o Actualizar un Cliente (Cuando llenan el formulario)
+app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
+  // Asumimos que mandas estos datos desde el celular
+  const { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
+
+  // Usamos ON DUPLICATE KEY UPDATE: Si el DNI ya existe, solo le actualiza los datos. Si no, lo crea.
+  const sql = `
+    INSERT INTO CLIENTE (DOCUMENTO, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHANACIMIENTO, PROCEDENCIA, NACIONALIDAD) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE 
+    NOMBRES = VALUES(NOMBRES), APELLIDOS = VALUES(APELLIDOS), TELEFONO = VALUES(TELEFONO), 
+    CORREO = VALUES(CORREO), FECHANACIMIENTO = VALUES(FECHANACIMIENTO), 
+    PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD)
+  `;
+
+  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad], (err, results) => {
+    if (err) {
+      console.error('Error al guardar cliente: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ mensaje: `Cliente ${dni} guardado en la nube ☁️✅` });
+  });
+});
+
 
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
