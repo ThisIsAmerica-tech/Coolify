@@ -175,18 +175,17 @@ app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
   });
 });
 
-// 🚪 PUERTA 10: Guardar o Actualizar un Cliente (Cuando llenan el formulario)
+// 🚪 PUERTA 10: Guardar o Actualizar un Cliente
 app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
-  // Asumimos que mandas estos datos desde el celular
   const { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
 
-  // Usamos ON DUPLICATE KEY UPDATE: Si el DNI ya existe, solo le actualiza los datos. Si no, lo crea.
+  // ✅ CORRECCIÓN: Usamos DNI y FECHA_NAC para que coincida exacto con tu MySQL
   const sql = `
-    INSERT INTO CLIENTE (DOCUMENTO, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHANACIMIENTO, PROCEDENCIA, NACIONALIDAD) 
+    INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, PROCEDENCIA, NACIONALIDAD) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE 
     NOMBRES = VALUES(NOMBRES), APELLIDOS = VALUES(APELLIDOS), TELEFONO = VALUES(TELEFONO), 
-    CORREO = VALUES(CORREO), FECHANACIMIENTO = VALUES(FECHANACIMIENTO), 
+    CORREO = VALUES(CORREO), FECHA_NAC = VALUES(FECHA_NAC), 
     PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD)
   `;
 
