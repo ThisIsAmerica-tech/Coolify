@@ -63,11 +63,8 @@ app.get('/api/habitaciones', (req, res) => {
 
 // 🚪 PUERTA 5: Actualizar estado y precio de una Habitación (Guardar y Disparar)
 app.post('/api/habitacion/actualizar', verificarApiKey, (req, res) => {
-  // Recibimos la caja de Android
   const { numeroHabitacion, nuevoEstado, nuevoPrecio } = req.body;
 
-  // Actualizamos la tabla HABITACION. 
-  // OJO: Usamos un sub-query para buscar el ESTADOID basado en el nombre ('LIBRE', 'OCUPADO', etc.)
   const sql = `
     UPDATE HABITACION 
     SET 
@@ -85,12 +82,10 @@ app.post('/api/habitacion/actualizar', verificarApiKey, (req, res) => {
   });
 });
 
-
 // 🚪 PUERTA 6: Crear una nueva Habitación (Guardar y Disparar)
 app.post('/api/habitacion/nueva', verificarApiKey, (req, res) => {
   const { numeroHabitacion, tipo, precio } = req.body;
 
-  // Por defecto la creamos con ESTADO 1 (Libre) y SUCURSAL 1
   const sql = `INSERT INTO HABITACION (HABITACION, PRECIO, TIPO, ESTADO, SUCURSAL) VALUES (?, ?, ?, 1, 1)`;
   
   db.query(sql, [numeroHabitacion, precio, tipo], (err, results) => {
@@ -107,7 +102,6 @@ app.post('/api/habitacion/nueva', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 7: Descargar todas las habitaciones (Tubo de Bajada)
 app.get('/api/habitacion/todas', verificarApiKey, (req, res) => {
-  // Juntamos la tabla de habitaciones con la de estados para mandar el nombre ('LIBRE', 'OCUPADO')
   const sql = `
     SELECT h.HABITACION as numero, h.PRECIO as precio, h.TIPO as tipo, e.NOMBRE as estado
     FROM HABITACION h
@@ -119,7 +113,6 @@ app.get('/api/habitacion/todas', verificarApiKey, (req, res) => {
       console.error('Error al descargar habitaciones: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
     }
-    // Mandamos el paquete
     res.json({ habitaciones: results });
   });
 });
@@ -163,11 +156,9 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
       console.error('Error al sincronizar: ', err);
       return res.status(500).json({ mensaje: 'Error leyendo la nube' });
     }
-    // Le devolvemos la lista completa al celular en formato JSON
     res.json(results); 
   });
 });
-
 
 // 🚪 PUERTA 9: Descargar todos los clientes (Tubo de Bajada para el Buscador)
 app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
@@ -183,9 +174,26 @@ app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 10: Guardar o Actualizar un Cliente
 app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
-  const { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
+  // Usamos let porque vamos a modificar las variables si es necesario
+  let { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
 
-  // ✅ CORRECCIÓN: Usamos DNI y FECHA_NAC para que coincida exacto con tu MySQL
+  // 🛡️ ESCUDO PROTECTOR DE FECHAS (El traductor que le gusta a MySQL)
+  let fechaValida = null;
+  
+  if (fechaNacimiento && fechaNacimiento.trim() !== "") {
+    // Si Android manda "01/01/1990", lo partimos y lo volteamos a "1990-01-01"
+    if (fechaNacimiento.includes('/')) {
+        const partes = fechaNacimiento.split('/');
+        if (partes.length === 3) {
+            fechaValida = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        } else {
+            fechaValida = fechaNacimiento;
+        }
+    } else {
+        fechaValida = fechaNacimiento;
+    }
+  }
+
   const sql = `
     INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, PROCEDENCIA, NACIONALIDAD) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -195,7 +203,8 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
     PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD)
   `;
 
-  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad], (err, results) => {
+  // ¡AQUÍ ESTÁ LA MAGIA! Pasamos fechaValida (traducida o nula) en vez de fechaNacimiento
+  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaValida, procedencia, nacionalidad], (err, results) => {
     if (err) {
       console.error('Error al guardar cliente: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
@@ -204,10 +213,8 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
   });
 });
 
-
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API corriendo en el puerto ${PORT}`);
 });
-
