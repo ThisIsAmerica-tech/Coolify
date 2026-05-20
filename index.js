@@ -26,20 +26,26 @@ const verificarApiKey = (req, res, next) => {
 };
 
 // 🔌 CONEXIÓN A TU COOLIFY (Ahora lee del .env)
-const db = mysql.createConnection({
-  host: process.env.DB_HOST, 
-  port: process.env.DB_PORT,             
-  user: process.env.DB_USER,           
-  password: process.env.DB_PASSWORD, 
-  database: process.env.DB_NAME  
+// ✅ EL NUEVO POOL BLINDADO
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT, 
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true // ¡Esto evita que MySQL nos corte la llamada!
 });
 
-db.connect((err) => {
+db.getConnection((err, connection) => {
   if (err) {
-    console.error('Error conectando a la base de datos: ', err);
-    return;
+    console.error('❌ Error conectando a la base de datos:', err);
+  } else {
+    console.log('✅ ¡Conectado al MySQL con un POOL blindado! 🐻');
+    connection.release(); // Soltamos la conexión para que descanse
   }
-  console.log('✅ ¡Conectado al MySQL de Coolify como un campeón! 🐻');
 });
 
 // 🚪 PUERTA 1: Prueba de conexión
