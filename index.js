@@ -130,6 +130,41 @@ app.delete('/api/habitacion/eliminar/:numero', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas
+app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
+  const { fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion } = req.body;
+
+  // 1. Buscamos el ID interno del cliente usando su DNI
+  const sqlCliente = `SELECT CLIENTEID FROM CLIENTE WHERE DNI = ? LIMIT 1`;
+  
+  db.query(sqlCliente, [clienteDni], (err, resultsCliente) => {
+    if (err) return res.status(500).json({ mensaje: 'Error buscando cliente' });
+    
+    // Si por alguna razón el cliente no subió a tiempo, abortamos para no romper la base de datos
+    if (resultsCliente.length === 0) {
+      return res.status(400).json({ mensaje: 'Cliente no existe en la nube aún' });
+    }
+
+    const clienteId = resultsCliente[0].CLIENTEID;
+
+    // 2. Insertamos la reserva en el historial (Asumimos PERSONAL = 1 por ahora)
+    const sqlReserva = `
+      INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) 
+      VALUES (?, ?, 1, ?, ?, ?, ?)
+    `;
+    
+    db.query(sqlReserva, [fechaInicio, fechaFin, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
+      if (errRes) {
+        console.error('Error guardando reserva en historial: ', errRes);
+        return res.status(500).json({ mensaje: 'Error guardando reserva' });
+      }
+      res.json({ mensaje: 'Reserva guardada en el historial de la nube ☁️✅' });
+    });
+  });
+});
+
+
+
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
   const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
