@@ -130,35 +130,37 @@ app.delete('/api/habitacion/eliminar/:numero', verificarApiKey, (req, res) => {
   });
 });
 
-// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas
+// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas (Dinámico)
 app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
-  const { fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion } = req.body;
+  const { fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion, personalCorreo } = req.body;
 
-  // 1. Buscamos el ID interno del cliente usando su DNI
+  // 1. Buscamos el ID del cliente
   const sqlCliente = `SELECT CLIENTEID FROM CLIENTE WHERE DNI = ? LIMIT 1`;
-  
   db.query(sqlCliente, [clienteDni], (err, resultsCliente) => {
     if (err) return res.status(500).json({ mensaje: 'Error buscando cliente' });
-    
-    // Si por alguna razón el cliente no subió a tiempo, abortamos para no romper la base de datos
-    if (resultsCliente.length === 0) {
-      return res.status(400).json({ mensaje: 'Cliente no existe en la nube aún' });
-    }
-
+    if (resultsCliente.length === 0) return res.status(400).json({ mensaje: 'Cliente no existe en la nube aún' });
     const clienteId = resultsCliente[0].CLIENTEID;
 
-    // 2. Insertamos la reserva en el historial (Asumimos PERSONAL = 1 por ahora)
-    const sqlReserva = `
-      INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) 
-      VALUES (?, ?, 1, ?, ?, ?, ?)
-    `;
-    
-    db.query(sqlReserva, [fechaInicio, fechaFin, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
-      if (errRes) {
-        console.error('Error guardando reserva en historial: ', errRes);
-        return res.status(500).json({ mensaje: 'Error guardando reserva' });
-      }
-      res.json({ mensaje: 'Reserva guardada en el historial de la nube ☁️✅' });
+    // 2. Buscamos el ID real del Recepcionista usando su correo
+    const sqlPersonal = `SELECT PERSONALID FROM PERSONAL WHERE CORREO = ? LIMIT 1`;
+    db.query(sqlPersonal, [personalCorreo], (err, resultsPersonal) => {
+      if (err) return res.status(500).json({ mensaje: 'Error buscando personal' });
+      
+      // Obtenemos el ID real (si no lo encuentra por alguna razón, usamos el 1 de respaldo)
+      const personalId = resultsPersonal.length > 0 ? resultsPersonal[0].PERSONALID : 1;
+
+      // 3. Insertamos la reserva con los protagonistas exactos
+      const sqlReserva = `
+        INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+      db.query(sqlReserva, [fechaInicio, fechaFin, personalId, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
+        if (errRes) {
+          console.error('Error guardando reserva en historial: ', errRes);
+          return res.status(500).json({ mensaje: 'Error guardando reserva' });
+        }
+        res.json({ mensaje: `Reserva guardada a nombre del ID ${personalId} ☁️✅` });
+      });
     });
   });
 });
