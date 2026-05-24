@@ -278,3 +278,21 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`API corriendo en el puerto ${PORT}`);
 });
+
+
+// 🚪 PUERTA MAESTRA: Sincronización Total
+app.get('/api/sync/todo', verificarApiKey, (req, res) => {
+  const query = `
+    SELECT 
+      h.HABITACION, h.ESTADO, h.PRECIO,
+      r.RESERVACIONID, r.FECHAINICIO, r.FECHAFIN, r.NOTA, r.TOTAL_VENTA, r.CLIENTE,
+      c.DNI, c.NOMBRES, c.APELLIDOS
+    FROM HABITACION h
+    LEFT JOIN RESERVACION r ON h.RESERVACION = r.RESERVACIONID
+    LEFT JOIN CLIENTE c ON r.CLIENTE = c.CLIENTEID
+  `;
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ error: "Error en la sync" });
+    res.json({ data: results }); // Todo el hotel en un solo objeto
+  });
+});
