@@ -130,7 +130,7 @@ app.delete('/api/habitacion/eliminar/:numero', verificarApiKey, (req, res) => {
   });
 });
 
-// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas (Dinámico)
+// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas (Súper Blindado)
 app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
   const { fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion, personalCorreo } = req.body;
 
@@ -146,21 +146,32 @@ app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
     db.query(sqlPersonal, [personalCorreo], (err, resultsPersonal) => {
       if (err) return res.status(500).json({ mensaje: 'Error buscando personal' });
       
-      // Obtenemos el ID real (si no lo encuentra por alguna razón, usamos el 1 de respaldo)
-      const personalId = resultsPersonal.length > 0 ? resultsPersonal[0].PERSONALID : 1;
+      // Función interna para disparar la reserva
+      const insertarReserva = (idPersonalFinal) => {
+        const sqlReserva = `INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        db.query(sqlReserva, [fechaInicio, fechaFin, idPersonalFinal, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
+          if (errRes) {
+            console.error('Error guardando reserva en historial: ', errRes);
+            return res.status(500).json({ mensaje: 'Error guardando reserva' });
+          }
+          res.json({ mensaje: `Reserva guardada con éxito a nombre del ID ${idPersonalFinal} ☁️✅` });
+        });
+      };
 
-      // 3. Insertamos la reserva con los protagonistas exactos
-      const sqlReserva = `
-        INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      db.query(sqlReserva, [fechaInicio, fechaFin, personalId, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
-        if (errRes) {
-          console.error('Error guardando reserva en historial: ', errRes);
-          return res.status(500).json({ mensaje: 'Error guardando reserva' });
-        }
-        res.json({ mensaje: `Reserva guardada a nombre del ID ${personalId} ☁️✅` });
-      });
+      if (resultsPersonal.length > 0) {
+        // Encontró el correo exacto (ej. daniel@gmail.com)
+        insertarReserva(resultsPersonal[0].PERSONALID);
+      } else {
+        // 🛡️ ESCUDO: Si Android mandó un correo "fantasma" que ya borraste, 
+        // agarramos el primer usuario real que exista en tu BD para que NO explote.
+        db.query(`SELECT PERSONALID FROM PERSONAL LIMIT 1`, (errFallback, resFallback) => {
+           if (resFallback && resFallback.length > 0) {
+             insertarReserva(resFallback[0].PERSONALID);
+           } else {
+             return res.status(500).json({ mensaje: 'No hay ningún recepcionista en la BD' });
+           }
+        });
+      }
     });
   });
 });
