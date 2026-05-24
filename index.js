@@ -177,6 +177,18 @@ app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
 });
 
 
+// 🚪 PUERTA 12: Descargar todo el historial de reservaciones (Tubo de Bajada)
+app.get('/api/reservacion/todas', verificarApiKey, (req, res) => {
+  const sql = `SELECT * FROM RESERVACION`;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error al descargar reservaciones: ', err);
+      return res.status(500).json({ mensaje: 'Error en la nube' });
+    }
+    res.json({ reservaciones: results });
+  });
+});
+
 
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
 app.post('/api/registro', verificarApiKey, (req, res) => {
