@@ -191,14 +191,18 @@ app.get('/api/reservacion/todas', verificarApiKey, (req, res) => {
 
 
 // 🚪 PUERTA 3: Recibir un nuevo registro (AHORA PROTEGIDA CON CADENERO 🛡️)
+// 🚪 PUERTA 3: Recibir un nuevo registro (AHORA ACEPTA ROLES)
 app.post('/api/registro', verificarApiKey, (req, res) => {
-  const { nombres, apellidos, correo, pass, pregunta, respuesta } = req.body;
+  const { nombres, apellidos, correo, pass, pregunta, respuesta, rol } = req.body;
+  
+  // Si no mandan rol, por seguridad le ponemos 2 (Recepcionista/Trabajador)
+  const rolFinal = rol ? rol : 2; 
 
   const sql = `INSERT INTO PERSONAL 
     (NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, SUELDO, ROL, HORARIO, ASISTENCIA, PREGUNTA, RESPUESTA, is_deleted) 
-    VALUES (?, ?, ?, ?, ?, 0.0, 1, 1, 1, ?, ?, 0)`;
+    VALUES (?, ?, ?, ?, ?, 0.0, ?, 1, 1, ?, ?, 0)`;
   
-  db.query(sql, [nombres, apellidos, correo, pass, correo, pregunta, respuesta], (err, results) => {
+  db.query(sql, [nombres, apellidos, correo, pass, correo, rolFinal, pregunta, respuesta], (err, results) => {
     if (err) {
       console.error('Error al guardar en MySQL: ', err);
       return res.status(500).json({ mensaje: 'Error guardando en la nube: ' + err.code });
