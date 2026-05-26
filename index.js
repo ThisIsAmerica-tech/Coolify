@@ -224,6 +224,35 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
   });
 });
 
+
+// 🚪 PUERTA 13: Actualizar Recepcionista (Nombres, Apellidos y Contraseña)
+app.put('/api/personal/actualizar', verificarApiKey, (req, res) => {
+  const { nombres, apellidos, correo, pass } = req.body;
+  
+  const sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, CONTRASENA = ? WHERE CORREO = ?`;
+  db.query(sql, [nombres, apellidos, pass, correo], (err, results) => {
+    if (err) {
+      console.error('Error actualizando personal: ', err);
+      return res.status(500).json({ mensaje: 'Error actualizando en la nube' });
+    }
+    res.json({ mensaje: 'Personal actualizado en la nube ☁️🔄' });
+  });
+});
+
+// 🚪 PUERTA 14: Eliminar Recepcionista
+app.delete('/api/personal/eliminar/:correo', verificarApiKey, (req, res) => {
+  const correo = req.params.correo;
+  
+  const sql = `DELETE FROM PERSONAL WHERE CORREO = ?`;
+  db.query(sql, [correo], (err, results) => {
+    if (err) {
+      console.error('Error eliminando personal: ', err);
+      return res.status(500).json({ mensaje: 'Error eliminando en la nube' });
+    }
+    res.json({ mensaje: 'Personal eliminado de la nube ☁️🗑️' });
+  });
+});
+
 // 🚪 PUERTA 9: Descargar todos los clientes (Tubo de Bajada para el Buscador)
 app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
   const sql = `SELECT * FROM CLIENTE`;
