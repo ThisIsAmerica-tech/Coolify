@@ -229,8 +229,20 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
 app.put('/api/personal/actualizar', verificarApiKey, (req, res) => {
   const { nombres, apellidos, correo, pass } = req.body;
   
-  const sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, CONTRASENA = ? WHERE CORREO = ?`;
-  db.query(sql, [nombres, apellidos, pass, correo], (err, results) => {
+  let sql;
+  let params;
+
+  // 🛡️ ESCUDO: Si el administrador escribió una contraseña, la actualizamos.
+  // Si la dejó en blanco (pass vacío), actualizamos todo MENOS la contraseña.
+  if (pass && pass.trim() !== "") {
+      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, CONTRASENA = ? WHERE CORREO = ?`;
+      params = [nombres, apellidos, pass, correo];
+  } else {
+      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ? WHERE CORREO = ?`;
+      params = [nombres, apellidos, correo];
+  }
+
+  db.query(sql, params, (err, results) => {
     if (err) {
       console.error('Error actualizando personal: ', err);
       return res.status(500).json({ mensaje: 'Error actualizando en la nube' });
