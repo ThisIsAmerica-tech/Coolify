@@ -255,7 +255,22 @@ app.delete('/api/personal/eliminar/:correo', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 9: Descargar todos los clientes (Tubo de Bajada para el Buscador)
 app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
-  const sql = `SELECT * FROM CLIENTE`;
+  // 🚀 TRUCO DE TRADUCCIÓN: Le decimos DNI AS DOCUMENTO para que Android lo entienda
+  const sql = `
+    SELECT 
+        CLIENTEID, 
+        DNI AS DOCUMENTO, 
+        NOMBRES, 
+        APELLIDOS, 
+        TELEFONO, 
+        CORREO, 
+        FECHA_NAC, 
+        EDAD, 
+        PROCEDENCIA, 
+        NACIONALIDAD 
+    FROM CLIENTE
+  `;
+  
   db.query(sql, (err, results) => {
     if (err) {
       console.error('Error al descargar clientes: ', err);
