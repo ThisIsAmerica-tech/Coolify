@@ -282,7 +282,6 @@ app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 10: Guardar o Actualizar un Cliente
 app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
-  // Usamos let porque vamos a modificar las variables si es necesario
   let { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
 
   // 🛡️ ESCUDO PROTECTOR DE FECHAS (El traductor que le gusta a MySQL)
@@ -302,22 +301,41 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
     }
   }
 
+  // 🧠 CALCULADORA AUTOMÁTICA DE EDAD (La Nota de Oro)
+  let edadCalculada = 0;
+  if (fechaValida) {
+      const fechaNac = new Date(fechaValida);
+      // Validamos que sea una fecha real antes de hacer la matemática
+      if (!isNaN(fechaNac.getTime())) {
+          const hoy = new Date();
+          let edad = hoy.getFullYear() - fechaNac.getFullYear();
+          const mes = hoy.getMonth() - fechaNac.getMonth();
+          
+          // Si aún no ha llegado su mes de cumpleaños, o es el mes pero no ha llegado el día, le restamos 1 año
+          if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+              edad--;
+          }
+          edadCalculada = edad > 0 ? edad : 0; // Evitamos edades negativas por errores
+      }
+  }
+
+  // 🚀 ACTUALIZAMOS EL SQL PARA QUE GUARDE LA COLUMNA EDAD
   const sql = `
-    INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, PROCEDENCIA, NACIONALIDAD) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, EDAD, PROCEDENCIA, NACIONALIDAD) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE 
     NOMBRES = VALUES(NOMBRES), APELLIDOS = VALUES(APELLIDOS), TELEFONO = VALUES(TELEFONO), 
-    CORREO = VALUES(CORREO), FECHA_NAC = VALUES(FECHA_NAC), 
+    CORREO = VALUES(CORREO), FECHA_NAC = VALUES(FECHA_NAC), EDAD = VALUES(EDAD), 
     PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD)
   `;
 
-  // ¡AQUÍ ESTÁ LA MAGIA! Pasamos fechaValida (traducida o nula) en vez de fechaNacimiento
-  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaValida, procedencia, nacionalidad], (err, results) => {
+  // ¡Enviamos edadCalculada en el arreglo de datos!
+  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaValida, edadCalculada, procedencia, nacionalidad], (err, results) => {
     if (err) {
       console.error('Error al guardar cliente: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
     }
-    res.json({ mensaje: `Cliente ${dni} guardado en la nube ☁️✅` });
+    res.json({ mensaje: `Cliente ${dni} guardado en la nube con ${edadCalculada} años ☁️✅` });
   });
 });
 
