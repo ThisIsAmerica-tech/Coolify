@@ -351,6 +351,38 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
   });
 });
 
+
+// =========================================================================
+// ⚙️ GESTIÓN DE CONFIGURACIÓN DEL HOTEL
+// =========================================================================
+
+// 🚪 PUERTA 15: Obtener la configuración actual
+app.get('/api/configuracion', verificarApiKey, (req, res) => {
+  const sql = `SELECT * FROM CONFIGURACION WHERE ID = 1`;
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ mensaje: 'Error al obtener config' });
+    if (results.length > 0) {
+      res.json(results[0]);
+    } else {
+      res.json({ CHECKOUT_HORA: 12, CHECKOUT_MINUTO: 0, CORTE_HORA: 3, CORTE_MINUTO: 30 });
+    }
+  });
+});
+
+// 🚪 PUERTA 16: Actualizar la configuración (Solo Admin)
+app.put('/api/configuracion', verificarApiKey, (req, res) => {
+  const { checkout_h, checkout_m, corte_h, corte_m } = req.body;
+  const sql = `UPDATE CONFIGURACION SET CHECKOUT_HORA=?, CHECKOUT_MINUTO=?, CORTE_HORA=?, CORTE_MINUTO=? WHERE ID=1`;
+  
+  db.query(sql, [checkout_h, checkout_m, corte_h, corte_m], (err, results) => {
+    if (err) return res.status(500).json({ mensaje: 'Error al actualizar config' });
+    res.json({ 
+        mensaje: 'Configuración actualizada en la nube ☁️⚙️',
+        estado: true
+    });
+  });
+});
+
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
