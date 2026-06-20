@@ -213,7 +213,10 @@ app.post('/api/registro', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 4: Sincronización (Bajar los usuarios de MySQL al celular)
 app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
-  const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL FROM PERSONAL WHERE is_deleted = 0';
+  // 🚀 EL GRAN FIX: 
+  // 1. Quitamos el "WHERE is_deleted = 0" para que bajen TODOS (Activos e Inactivos).
+  // 2. Agregamos "is_deleted" en el SELECT para que el celular sepa quién es quién.
+  const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL, is_deleted FROM PERSONAL';
   
   db.query(sql, (err, results) => {
     if (err) {
