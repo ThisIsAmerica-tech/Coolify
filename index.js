@@ -225,21 +225,24 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
 });
 
 
-// 🚪 PUERTA 13: Actualizar Recepcionista (Nombres, Apellidos y Contraseña)
+// 🚪 PUERTA 13: Actualizar Recepcionista (Ahora guarda si está Activo o Inactivo)
 app.put('/api/personal/actualizar', verificarApiKey, (req, res) => {
-  const { nombres, apellidos, correo, pass } = req.body;
+  // 🚀 LA PIEZA FALTANTE: Ahora recibimos el is_deleted desde el celular
+  const { nombres, apellidos, correo, pass, is_deleted } = req.body;
+  
+  // Si por alguna razón el celular no manda el dato, asumimos que sigue activo (0)
+  const estadoFinal = is_deleted !== undefined ? is_deleted : 0;
   
   let sql;
   let params;
 
-  // 🛡️ ESCUDO: Si el administrador escribió una contraseña, la actualizamos.
-  // Si la dejó en blanco (pass vacío), actualizamos todo MENOS la contraseña.
+  // 🛡️ ESCUDO: Actualizamos también la columna is_deleted en ambas opciones
   if (pass && pass.trim() !== "") {
-      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, CONTRASENA = ? WHERE CORREO = ?`;
-      params = [nombres, apellidos, pass, correo];
+      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, CONTRASENA = ?, is_deleted = ? WHERE CORREO = ?`;
+      params = [nombres, apellidos, pass, estadoFinal, correo];
   } else {
-      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ? WHERE CORREO = ?`;
-      params = [nombres, apellidos, correo];
+      sql = `UPDATE PERSONAL SET NOMBRES = ?, APELLIDOS = ?, is_deleted = ? WHERE CORREO = ?`;
+      params = [nombres, apellidos, estadoFinal, correo];
   }
 
   db.query(sql, params, (err, results) => {
@@ -247,7 +250,7 @@ app.put('/api/personal/actualizar', verificarApiKey, (req, res) => {
       console.error('Error actualizando personal: ', err);
       return res.status(500).json({ mensaje: 'Error actualizando en la nube' });
     }
-    res.json({ mensaje: 'Personal actualizado en la nube ☁️🔄' });
+    res.json({ mensaje: `Personal actualizado (Estado: ${estadoFinal}) en la nube ☁️🔄` });
   });
 });
 
