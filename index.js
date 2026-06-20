@@ -211,6 +211,7 @@ app.post('/api/registro', verificarApiKey, (req, res) => {
   });
 });
 
+
 // 🚪 PUERTA 4: Sincronización (Bajar los usuarios de MySQL al celular)
 app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
   const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL, is_deleted FROM PERSONAL';
