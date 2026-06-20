@@ -221,10 +221,13 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
       return res.status(500).json({ mensaje: 'Error leyendo la nube' });
     }
     
-    // 🚀 LA SOLUCIÓN DEFINITIVA: Formateamos a mano el paquete para que Android no se maree
+    // 🚀 EL ANTÍDOTO ULTRA-BLINDADO: Formateamos a mano asegurando mayúsculas y minúsculas
     const datosLimpios = results.map(usuario => {
-        // Obligamos a que si la BD dice 1, '1' o true, se vuelva un número 1. Si no, 0.
-        let estadoReal = (usuario.is_deleted == 1 || usuario.is_deleted === true) ? 1 : 0;
+        // DOBLE ESCUDO: Buscamos "is_deleted" en minúsculas o en mayúsculas por si acaso
+        let estadoCrudo = usuario.is_deleted !== undefined ? usuario.is_deleted : usuario.IS_DELETED;
+        
+        // Convertimos cualquier formato (true, 1, "1") estrictamente a un número entero 1 o 0
+        let estadoReal = (estadoCrudo == 1 || estadoCrudo === true) ? 1 : 0;
 
         return {
             NOMBRES: usuario.NOMBRES,
@@ -235,7 +238,7 @@ app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
             PREGUNTA: usuario.PREGUNTA,
             RESPUESTA: usuario.RESPUESTA,
             ROL: usuario.ROL,
-            is_deleted: estadoReal // 👈 ¡Ahora viaja como un NÚMERO PURO!
+            is_deleted: estadoReal // 👈 Viaja limpio como un número puro (0 o 1)
         };
     });
 
