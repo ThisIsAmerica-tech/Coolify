@@ -213,16 +213,34 @@ app.post('/api/registro', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 4: Sincronización (Bajar los usuarios de MySQL al celular)
 app.get('/api/sincronizar/personal', verificarApiKey, (req, res) => {
-  // 🚀 EL ANTÍDOTO: Usamos "CAST" para obligar a Node a enviar un número entero (0 o 1) sí o sí.
-  // Además, quitamos el "WHERE is_deleted = 0" para que bajen todos (activos e inactivos).
-  const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL, CAST(is_deleted AS UNSIGNED) AS is_deleted FROM PERSONAL';
+  const sql = 'SELECT NOMBRES, APELLIDOS, USUARIO, CONTRASENA, CORREO, PREGUNTA, RESPUESTA, ROL, is_deleted FROM PERSONAL';
   
   db.query(sql, (err, results) => {
     if (err) {
       console.error('Error al sincronizar: ', err);
       return res.status(500).json({ mensaje: 'Error leyendo la nube' });
     }
-    res.json(results); 
+    
+    // 🚀 LA SOLUCIÓN DEFINITIVA: Formateamos a mano el paquete para que Android no se maree
+    const datosLimpios = results.map(usuario => {
+        // Obligamos a que si la BD dice 1, '1' o true, se vuelva un número 1. Si no, 0.
+        let estadoReal = (usuario.is_deleted == 1 || usuario.is_deleted === true) ? 1 : 0;
+
+        return {
+            NOMBRES: usuario.NOMBRES,
+            APELLIDOS: usuario.APELLIDOS,
+            USUARIO: usuario.USUARIO,
+            CONTRASENA: usuario.CONTRASENA,
+            CORREO: usuario.CORREO,
+            PREGUNTA: usuario.PREGUNTA,
+            RESPUESTA: usuario.RESPUESTA,
+            ROL: usuario.ROL,
+            is_deleted: estadoReal // 👈 ¡Ahora viaja como un NÚMERO PURO!
+        };
+    });
+
+    // Enviamos los datos limpios a tu celular
+    res.json(datosLimpios); 
   });
 });
 
