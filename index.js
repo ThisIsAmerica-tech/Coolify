@@ -447,6 +447,29 @@ app.put('/api/reservacion/nota', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 18: Acciones de Reservas Futuras (Borrar o Devolver)
+app.post('/api/reservacion/accion', verificarApiKey, (req, res) => {
+  const { idReserva, accion } = req.body;
+  
+  if (accion === 'BORRAR_SIN_DEVOLVER') {
+      // 🚀 Mantiene el cobro intacto en caja, pero libera la habitación
+      const sql = "UPDATE RESERVACION SET HABITACION_INFO = 'LIBERADA' WHERE RESERVACIONID = ?";
+      db.query(sql, [idReserva], (err) => {
+          if (err) return res.status(500).json({ mensaje: 'Error en la nube' });
+          res.json({ mensaje: 'Cobro mantenido, habitación liberada ☁️✅' });
+      });
+  } else if (accion === 'DEVOLVER_Y_BORRAR') {
+      // 🗑️ Aniquila la reserva y el dinero de los reportes
+      const sql = "DELETE FROM RESERVACION WHERE RESERVACIONID = ?";
+      db.query(sql, [idReserva], (err) => {
+          if (err) return res.status(500).json({ mensaje: 'Error en la nube' });
+          res.json({ mensaje: 'Reserva y dinero eliminados ☁️🗑️' });
+      });
+  } else {
+      res.status(400).json({ mensaje: 'Acción desconocida' });
+  }
+});
+
 
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
