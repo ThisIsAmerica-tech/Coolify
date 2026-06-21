@@ -130,48 +130,71 @@ app.delete('/api/habitacion/eliminar/:numero', verificarApiKey, (req, res) => {
   });
 });
 
-// 🚪 PUERTA 11: Guardar Historial de Reservas y Ventas (Súper Blindado)
+// 🚪 PUERTA 11: Guardar Historial de Reservas (Súper Blindado + ANTI-DUPLICADOS 🛡️)
 app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
-  const { fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion, personalCorreo } = req.body;
+  // 🚀 Atrapamos el ID de la reserva (si existe) para saber si es una modificación
+  const { reservacionId, idReserva, fechaInicio, fechaFin, totalVenta, nota, clienteDni, numeroHabitacion, personalCorreo } = req.body;
+  const idFinalReserva = reservacionId || idReserva || null;
 
-  // 1. Buscamos el ID del cliente
-  const sqlCliente = `SELECT CLIENTEID FROM CLIENTE WHERE DNI = ? LIMIT 1`;
-  db.query(sqlCliente, [clienteDni], (err, resultsCliente) => {
-    if (err) return res.status(500).json({ mensaje: 'Error buscando cliente' });
-    if (resultsCliente.length === 0) return res.status(400).json({ mensaje: 'Cliente no existe en la nube aún' });
-    const clienteId = resultsCliente[0].CLIENTEID;
+  // 🛡️ ESCUDO ANTI-DUPLICADOS: Verificamos choques de fechas
+  // Regla matemática: (NuevoFin > ViejoInicio) Y (NuevoInicio < ViejoFin)
+  let sqlCheck = `SELECT RESERVACIONID FROM RESERVACION WHERE HABITACION_INFO = ? AND FECHAINICIO < ? AND FECHAFIN > ?`;
+  let paramsCheck = [numeroHabitacion, fechaFin, fechaInicio];
 
-    // 2. Buscamos el ID real del Recepcionista usando su correo
-    const sqlPersonal = `SELECT PERSONALID FROM PERSONAL WHERE CORREO = ? LIMIT 1`;
-    db.query(sqlPersonal, [personalCorreo], (err, resultsPersonal) => {
-      if (err) return res.status(500).json({ mensaje: 'Error buscando personal' });
-      
-      // Función interna para disparar la reserva
-      const insertarReserva = (idPersonalFinal) => {
-        const sqlReserva = `INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        db.query(sqlReserva, [fechaInicio, fechaFin, idPersonalFinal, totalVenta, nota, clienteId, numeroHabitacion], (errRes, resultsRes) => {
-          if (errRes) {
-            console.error('Error guardando reserva en historial: ', errRes);
-            return res.status(500).json({ mensaje: 'Error guardando reserva' });
-          }
-          res.json({ mensaje: `Reserva guardada con éxito a nombre del ID ${idPersonalFinal} ☁️✅` });
-        });
-      };
+  if (idFinalReserva) {
+      // Si estamos editando, ignoramos el ID de la reserva que estamos modificando
+      sqlCheck += ` AND RESERVACIONID != ?`;
+      paramsCheck.push(idFinalReserva);
+  }
 
-      if (resultsPersonal.length > 0) {
-        // Encontró el correo exacto (ej. daniel@gmail.com)
-        insertarReserva(resultsPersonal[0].PERSONALID);
-      } else {
-        // 🛡️ ESCUDO: Si Android mandó un correo "fantasma" que ya borraste, 
-        // agarramos el primer usuario real que exista en tu BD para que NO explote.
-        db.query(`SELECT PERSONALID FROM PERSONAL LIMIT 1`, (errFallback, resFallback) => {
-           if (resFallback && resFallback.length > 0) {
-             insertarReserva(resFallback[0].PERSONALID);
-           } else {
-             return res.status(500).json({ mensaje: 'No hay ningún recepcionista en la BD' });
-           }
-        });
-      }
+  db.query(sqlCheck, paramsCheck, (errCheck, resultsCheck) => {
+    if (errCheck) return res.status(500).json({ mensaje: 'Error verificando fechas' });
+    
+    if (resultsCheck.length > 0) {
+        console.log(`🚨 Bloqueado: Intento de doble reserva en Habitación ${numeroHabitacion}`);
+        return res.status(400).json({ mensaje: '❌ ERROR: La habitación ya está ocupada en esas fechas.' });
+    }
+
+    // Si pasó el escudo, buscamos al cliente
+    const sqlCliente = `SELECT CLIENTEID FROM CLIENTE WHERE DNI = ? LIMIT 1`;
+    db.query(sqlCliente, [clienteDni], (err, resultsCliente) => {
+      if (err) return res.status(500).json({ mensaje: 'Error buscando cliente' });
+      if (resultsCliente.length === 0) return res.status(400).json({ mensaje: 'Cliente no existe en la nube aún' });
+      const clienteId = resultsCliente[0].CLIENTEID;
+
+      // Buscamos al Recepcionista
+      const sqlPersonal = `SELECT PERSONALID FROM PERSONAL WHERE CORREO = ? LIMIT 1`;
+      db.query(sqlPersonal, [personalCorreo], (err, resultsPersonal) => {
+        if (err) return res.status(500).json({ mensaje: 'Error buscando personal' });
+        
+        const guardarOActualizar = (idPersonalFinal) => {
+            if (idFinalReserva) {
+                // 🚀 ES UNA EDICIÓN: Hacemos UPDATE en vez de INSERT para no duplicar
+                const sqlUpdate = `UPDATE RESERVACION SET FECHAINICIO=?, FECHAFIN=?, PERSONAL=?, TOTAL_VENTA=?, NOTA=?, CLIENTE=?, HABITACION_INFO=? WHERE RESERVACIONID=?`;
+                db.query(sqlUpdate, [fechaInicio, fechaFin, idPersonalFinal, totalVenta, nota, clienteId, numeroHabitacion, idFinalReserva], (errUp) => {
+                    if (errUp) return res.status(500).json({ mensaje: 'Error actualizando reserva' });
+                    res.json({ mensaje: `Reserva actualizada con éxito sin duplicar ☁️🔄` });
+                });
+            } else {
+                // 🚀 ES NUEVA: Hacemos INSERT seguro
+                const sqlInsert = `INSERT INTO RESERVACION (FECHAINICIO, FECHAFIN, PERSONAL, TOTAL_VENTA, NOTA, CLIENTE, HABITACION_INFO) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                db.query(sqlInsert, [fechaInicio, fechaFin, idPersonalFinal, totalVenta, nota, clienteId, numeroHabitacion], (errIns) => {
+                    if (errIns) return res.status(500).json({ mensaje: 'Error guardando reserva' });
+                    res.json({ mensaje: `Reserva nueva guardada con éxito ☁️✅` });
+                });
+            }
+        };
+
+        if (resultsPersonal.length > 0) {
+          guardarOActualizar(resultsPersonal[0].PERSONALID);
+        } else {
+          // Escudo fantasma por si se borró el empleado localmente
+          db.query(`SELECT PERSONALID FROM PERSONAL LIMIT 1`, (errFallback, resFallback) => {
+             if (resFallback && resFallback.length > 0) guardarOActualizar(resFallback[0].PERSONALID);
+             else return res.status(500).json({ mensaje: 'No hay recepcionistas' });
+          });
+        }
+      });
     });
   });
 });
