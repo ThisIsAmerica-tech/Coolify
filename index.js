@@ -433,6 +433,21 @@ app.put('/api/configuracion', verificarApiKey, (req, res) => {
   });
 });
 
+// 🚪 PUERTA 17: Actualizar o Borrar Nota (Si envían texto vacío, se elimina de la lista)
+app.put('/api/reservacion/nota', verificarApiKey, (req, res) => {
+  const { idReserva, nuevaNota } = req.body;
+  
+  // 🚀 Magia: Si viene vacía, la convertimos en NULL para que la base de datos la oculte
+  const notaFinal = (nuevaNota && nuevaNota.trim() !== "") ? nuevaNota : null;
+
+  const sql = `UPDATE RESERVACION SET NOTA = ? WHERE RESERVACIONID = ?`;
+  db.query(sql, [notaFinal, idReserva], (err, results) => {
+    if (err) return res.status(500).json({ mensaje: 'Error actualizando nota en la nube' });
+    res.json({ mensaje: 'Nota actualizada/borrada en la nube ☁️' });
+  });
+});
+
+
 // Encendemos el servidor (Adaptado para la nube)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
