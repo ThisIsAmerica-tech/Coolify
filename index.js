@@ -202,13 +202,27 @@ app.post('/api/reservacion/guardar', verificarApiKey, (req, res) => {
 
 // 🚪 PUERTA 12: Descargar todo el historial de reservaciones (Tubo de Bajada)
 app.get('/api/reservacion/todas', verificarApiKey, (req, res) => {
-  const sql = `SELECT * FROM RESERVACION`;
+  // 🚀 EL GRAN FIX: Cruzamos con CLIENTE para extraer su DNI y enviarlo en vez del ID interno
+  const sql = `
+    SELECT r.*, c.DNI AS CLIENTE_DNI 
+    FROM RESERVACION r 
+    LEFT JOIN CLIENTE c ON r.CLIENTE = c.CLIENTEID
+  `;
   db.query(sql, (err, results) => {
     if (err) {
       console.error('Error al descargar reservaciones: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
     }
-    res.json({ reservaciones: results });
+    
+    // 🚀 REEMPLAZO INTELIGENTE: Si tiene DNI, enviamos el DNI. Si no, lo que haya.
+    const reservacionesCorregidas = results.map(r => {
+        return {
+            ...r,
+            CLIENTE: r.CLIENTE_DNI ? r.CLIENTE_DNI : r.CLIENTE
+        };
+    });
+
+    res.json({ reservaciones: reservacionesCorregidas });
   });
 });
 
