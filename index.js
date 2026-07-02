@@ -472,8 +472,14 @@ app.post('/api/reservacion/accion', verificarApiKey, (req, res) => {
   const { idReserva, accion } = req.body;
   
   if (accion === 'BORRAR_SIN_DEVOLVER') {
-      // 🚀 Mantiene el cobro intacto en caja, pero libera la habitación
-      const sql = "UPDATE RESERVACION SET HABITACION_INFO = 'LIBERADA' WHERE RESERVACIONID = ?";
+      // 🚀 Mantiene el cobro intacto, pero le pone un sufijo "-L" al cuarto (Ej. 001-L)
+      // Usamos CONCAT para unir el nombre actual con "-L", pero solo si no lo tiene ya.
+      const sql = `
+          UPDATE RESERVACION 
+          SET HABITACION_INFO = CONCAT(HABITACION_INFO, '-L'), 
+              NOTA = CONCAT('[COBRO MANTENIDO] ', IFNULL(NOTA, ''))
+          WHERE RESERVACIONID = ? AND HABITACION_INFO NOT LIKE '%-L'
+      `;
       db.query(sql, [idReserva], (err) => {
           if (err) return res.status(500).json({ mensaje: 'Error en la nube' });
           res.json({ mensaje: 'Cobro mantenido, habitación liberada ☁️✅' });
