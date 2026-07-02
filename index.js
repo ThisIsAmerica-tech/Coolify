@@ -364,15 +364,21 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
   let fechaValida = null;
   
   if (fechaNacimiento && fechaNacimiento.trim() !== "") {
-    // Si Android manda "01/01/1990", lo partimos y lo volteamos a "1990-01-01"
-    if (fechaNacimiento.includes('/')) {
+    // 1. Si viene con formato ISO (ej. 1996-01-01T00:00:00.000Z), lo cortamos en la 'T'
+    if (fechaNacimiento.includes('T')) {
+        fechaValida = fechaNacimiento.split('T')[0]; 
+    }
+    // 2. Si Android manda "01/01/1990", lo partimos y lo volteamos a "1990-01-01"
+    else if (fechaNacimiento.includes('/')) {
         const partes = fechaNacimiento.split('/');
         if (partes.length === 3) {
             fechaValida = `${partes[2]}-${partes[1]}-${partes[0]}`;
         } else {
             fechaValida = fechaNacimiento;
         }
-    } else {
+    } 
+    // 3. Si ya viene limpio (ej. 1990-01-01), lo dejamos pasar
+    else {
         fechaValida = fechaNacimiento;
     }
   }
