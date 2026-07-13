@@ -61,24 +61,30 @@ app.get('/api/habitaciones', (req, res) => {
   });
 });
 
-// 🚪 PUERTA 5: Actualizar estado y precio de una Habitación (Guardar y Disparar)
+// 🚪 PUERTA 5: Actualizar estado, precio y tipo de una Habitación (Guardar y Disparar)
 app.post('/api/habitacion/actualizar', verificarApiKey, (req, res) => {
-  const { numeroHabitacion, nuevoEstado, nuevoPrecio } = req.body;
+  // 🚀 Ahora también recibimos el 'tipo' (opcional)
+  const { numeroHabitacion, nuevoEstado, nuevoPrecio, tipo } = req.body;
 
-  const sql = `
-    UPDATE HABITACION 
-    SET 
-        ESTADO = (SELECT ESTADOID FROM ESTADOHABITACION WHERE NOMBRE = ? LIMIT 1),
-        PRECIO = ?
-    WHERE HABITACION = ?
-  `;
+  let sql;
+  let params;
+
+  if (tipo) {
+      // Si nos mandan el tipo, actualizamos todo
+      sql = `UPDATE HABITACION SET ESTADO = (SELECT ESTADOID FROM ESTADOHABITACION WHERE NOMBRE = ? LIMIT 1), PRECIO = ?, TIPO = ? WHERE HABITACION = ?`;
+      params = [nuevoEstado, nuevoPrecio, tipo, numeroHabitacion];
+  } else {
+      // Si no mandan tipo, hacemos la actualización clásica
+      sql = `UPDATE HABITACION SET ESTADO = (SELECT ESTADOID FROM ESTADOHABITACION WHERE NOMBRE = ? LIMIT 1), PRECIO = ? WHERE HABITACION = ?`;
+      params = [nuevoEstado, nuevoPrecio, numeroHabitacion];
+  }
   
-  db.query(sql, [nuevoEstado, nuevoPrecio, numeroHabitacion], (err, results) => {
+  db.query(sql, params, (err, results) => {
     if (err) {
       console.error('Error al actualizar habitación: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
     }
-    res.json({ mensaje: `Habitación ${numeroHabitacion} actualizada a ${nuevoEstado} ☁️✅` });
+    res.json({ mensaje: `Habitación ${numeroHabitacion} actualizada en la nube ☁️✅` });
   });
 });
 
