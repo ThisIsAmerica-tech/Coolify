@@ -362,9 +362,13 @@ app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
   });
 });
 
-// 🚪 PUERTA 10: Guardar o Actualizar un Cliente
+// 🚪 PUERTA 10: Guardar o Actualizar un Cliente (¡AHORA CON DEUDA! 💸)
 app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
-  let { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad } = req.body;
+  // 🚀 Atrapamos la nueva variable "deuda"
+  let { dni, nombres, apellidos, telefono, correo, fechaNacimiento, procedencia, nacionalidad, deuda } = req.body;
+
+  // Si no nos mandan deuda (o llega null/undefined), asumimos 0.0
+  const deudaFinal = deuda ? parseFloat(deuda) : 0.0;
 
   // 🛡️ ESCUDO PROTECTOR DE FECHAS (El traductor que le gusta a MySQL)
   let fechaValida = null;
@@ -407,23 +411,23 @@ app.post('/api/cliente/guardar', verificarApiKey, (req, res) => {
       }
   }
 
-  // 🚀 ACTUALIZAMOS EL SQL PARA QUE GUARDE LA COLUMNA EDAD
+  // 🚀 ACTUALIZAMOS EL SQL PARA QUE GUARDE LA COLUMNA DEUDA
   const sql = `
-    INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, EDAD, PROCEDENCIA, NACIONALIDAD) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO CLIENTE (DNI, NOMBRES, APELLIDOS, TELEFONO, CORREO, FECHA_NAC, EDAD, PROCEDENCIA, NACIONALIDAD, DEUDA) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE 
     NOMBRES = VALUES(NOMBRES), APELLIDOS = VALUES(APELLIDOS), TELEFONO = VALUES(TELEFONO), 
     CORREO = VALUES(CORREO), FECHA_NAC = VALUES(FECHA_NAC), EDAD = VALUES(EDAD), 
-    PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD)
+    PROCEDENCIA = VALUES(PROCEDENCIA), NACIONALIDAD = VALUES(NACIONALIDAD), DEUDA = VALUES(DEUDA)
   `;
 
-  // ¡Enviamos edadCalculada en el arreglo de datos!
-  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaValida, edadCalculada, procedencia, nacionalidad], (err, results) => {
+  // ¡Enviamos deudaFinal en el arreglo de datos!
+  db.query(sql, [dni, nombres, apellidos, telefono, correo, fechaValida, edadCalculada, procedencia, nacionalidad, deudaFinal], (err, results) => {
     if (err) {
       console.error('Error al guardar cliente: ', err);
       return res.status(500).json({ mensaje: 'Error en la nube' });
     }
-    res.json({ mensaje: `Cliente ${dni} guardado en la nube con ${edadCalculada} años ☁️✅` });
+    res.json({ mensaje: `Cliente ${dni} guardado en la nube con S/ ${deudaFinal} de deuda ☁️✅` });
   });
 });
 
