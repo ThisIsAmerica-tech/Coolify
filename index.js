@@ -349,7 +349,8 @@ app.get('/api/cliente/todos', verificarApiKey, (req, res) => {
         FECHA_NAC, 
         EDAD, 
         PROCEDENCIA, 
-        NACIONALIDAD 
+        NACIONALIDAD,
+        DEUDA /* 🚀 EL DATO QUE FALTABA PARA QUE EL CELULAR LO VEA */
     FROM CLIENTE
   `;
   
